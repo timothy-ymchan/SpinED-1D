@@ -55,37 +55,37 @@ def get_xpos_tower(eig_val,dx=1/20):
     return [dx*i for i in range(len(eig_val))]
    
 # Filename
-filename = "./results/nosym/ED_lamb-0.8660254037844386_mu-2_nsites-6_1747406556.json"
-# # Plotting the results with symmetry
-# with open(filename,"r") as file:
-#     result = json.load(file)
-#     plt.grid()
-#     momentum_keys,momentum_val = get_momentum(result)
-#     for i,momentum in enumerate(momentum_keys):
-#         all_eigvals = np.array(result['eigval'][momentum])
-#         idc_filter = np.where(all_eigvals < 2)
-#         eig_vals = all_eigvals[idc_filter]
-#         k = momentum_val[i]
-#         x_pos = get_xpos(eig_vals,k)
-#         plt.scatter(x_pos,eig_vals,s=5)
-#     x_labels = [f'k={k}' for k in momentum_val]
-#     plt.xticks(momentum_val, x_labels)
-#     # Show plot
-#     basename = Path(filename).stem
-#     plt.savefig(f'./figs/spectrum_{basename}.pdf')
-
-
+filename = "./results/momentum/ED_lamb-0.8660254037844386_mu-2_nsites-8_1747422117.json"
+# Plotting the results with symmetry
 with open(filename,"r") as file:
     result = json.load(file)
     plt.grid()
-    all_eigvals = np.array(result['eigval'])
-    idc_filter = np.where(all_eigvals < 1.6)
-    eig_vals = all_eigvals[idc_filter]
-    #print(eig_vals)
-    x_pos = get_xpos_tower(eig_vals,dx=1/20)
-    plt.scatter(x_pos,eig_vals,s=5)
-    x_labels = [f'nosym']
-    plt.xticks([0], x_labels)
+    momentum_keys,momentum_val = get_momentum(result)
+    for i,momentum in enumerate(momentum_keys):
+        all_eigvals = np.array(result['eigval'][momentum])
+        idc_filter = np.where(all_eigvals < 2)
+        eig_vals = all_eigvals[idc_filter]
+        k = momentum_val[i]
+        x_pos = get_xpos(eig_vals,k)
+        plt.scatter(x_pos,eig_vals,s=5)
+    x_labels = [f'k={k}' for k in momentum_val]
+    plt.xticks(momentum_val, x_labels)
+    # Show plot
     basename = Path(filename).stem
-    plt.title(basename)
-    plt.savefig(f'./figs/nosym/spectrum_{basename}.pdf')
+    plt.savefig(f'./figs/spectrum_{basename}.pdf')
+
+
+# with open(filename,"r") as file:
+#     result = json.load(file)
+#     plt.grid()
+#     all_eigvals = np.array(result['eigval'])
+#     idc_filter = np.where(all_eigvals < 1.6)
+#     eig_vals = all_eigvals[idc_filter]
+#     #print(eig_vals)
+#     x_pos = get_xpos_tower(eig_vals,dx=1/20)
+#     plt.scatter(x_pos,eig_vals,s=5)
+#     x_labels = [f'nosym']
+#     plt.xticks([0], x_labels)
+#     basename = Path(filename).stem
+#     plt.title(basename)
+#     plt.savefig(f'./figs/nosym/spectrum_{basename}.pdf')
