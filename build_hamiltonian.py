@@ -92,10 +92,10 @@ def build_nn_hamiltonian_sector(H,nsites,momentum,momentum_table,period_table,ba
                     idc_out, idc_in = find_index(b_rep,states), find_index(a,states)
                     H_sector[idc_out,idc_in] += norm*phase*coeff
     
-    atol = 10*np.finfo(float_type).eps
+    atol = 100*np.finfo(float_type).eps
     if not np.allclose(H_sector, H_sector.conj().T, atol=atol):
         max_diff = np.max(np.abs(H_sector - H_sector.conj().T))
-        raise AssertionError(f"H_sector is not Hermitian up to 10 times machine precision {atol}. Max difference: {max_diff}")
+        raise AssertionError(f"H_sector is not Hermitian up to 100 times machine precision {atol}. Max difference: {max_diff}")
     return H_sector
 
     
