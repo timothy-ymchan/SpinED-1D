@@ -4,6 +4,7 @@ from spin_ops import Id, Sx, Sy, Sz
 from numpy import kron
 import numpy as np
 from scipy.linalg import eigh
+from scipy.sparse.linalg import eigsh 
 import json
 import time
 
@@ -35,7 +36,10 @@ def ED_momentum(lamb,mu,nsites):
     result = {'eigval':{},'lamb':lamb,'mu':mu,'nsites':nsites}
     for k in mt.keys():
         H = build_nn_hamiltonian_sector(Hnn,nsites,k,mt,pt)
-        result['eigval'][k] = (eigh(H,eigvals_only=True)/nsites).tolist()
+        print(f'Sector size for {k}: {H.shape}')
+        eig_vals = eigh(H,eigvals_only=True)
+        #eig_vals = eigsh(H,k=5,which='SA',return_eigenvectors=False)
+        result['eigval'][k] = sorted((eig_vals/nsites).tolist())
 
     # Dump results 
     timestamp = int(time.time())
@@ -46,9 +50,8 @@ def ED_momentum(lamb,mu,nsites):
 if __name__ == "__main__":
     lambc = np.sqrt(3)/2
     mu = 2
-    #for nsites in []:
-    #nsites = 10
-    #ED_momentum(lambc,mu,nsites)
+    for nsites in [12]:
+        ED_momentum(lambc,mu,nsites)
     
 
 
