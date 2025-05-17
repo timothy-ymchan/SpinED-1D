@@ -37,8 +37,9 @@ def ED_momentum(lamb,mu,nsites):
     for k in mt.keys():
         H = build_nn_hamiltonian_sector(Hnn,nsites,k,mt,pt)
         print(f'Sector size for {k}: {H.shape}')
-        eig_vals = eigh(H,eigvals_only=True)
-        #eig_vals = eigsh(H,k=5,which='SA',return_eigenvectors=False)
+        #eig_vals = eigh(H,eigvals_only=True)
+        eig_vals = eigsh(H,k=20,which='LM',sigma=0,return_eigenvectors=False)
+        eig_vals = np.sort(eig_vals)
         result['eigval'][k] = sorted((eig_vals/nsites).tolist())
 
     # Dump results 
@@ -50,7 +51,7 @@ def ED_momentum(lamb,mu,nsites):
 if __name__ == "__main__":
     lambc = np.sqrt(3)/2
     mu = 2
-    for nsites in [12]:
+    for nsites in [8,9,10]:
         ED_momentum(lambc,mu,nsites)
     
 
