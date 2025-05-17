@@ -18,6 +18,9 @@ def pbc_keys(keys, nsites):
     int_keys = [int(k) for k in keys]
     return np.array([k if k < nsites/2 else k-nsites for k in int_keys])
 
+def fold_momentum(k,nsites):
+    return k if k < nsites/2 else k-nsites
+
 def get_momentum(result):
     nsites = result['nsites']
     momentum_keys = np.array([k for k in result['eigval'].keys()])
@@ -64,25 +67,33 @@ def get_xpos_tower(eig_val,dx=1/20):
 filename = "./results/momentumZ3/ED_lamb-0.8660254037844386_mu-2_nsites-10_1747518172.json"
 with open(filename,"r") as file:
     result = json.load(file)
+    nsites = result['nsites']
     #print(result)
-    eig_vals = remove_charge(result["eigval"])
-    eig_vals = eig_vals[:50]
-    x_pos = get_xpos_tower(eig_vals)
-    plt.scatter(x_pos,eig_vals,s=5)
-    x_labels = [f'nosym']
-    plt.xticks([0], x_labels) 
+    for charge in result["eigval"].keys():
+        k, c = eval(charge)
+        k = fold_momentum(k,nsites)
+        if k >= 0:
+            all_eigvals = np.array(result['eigval'][charge])
+            all_eigvals = all_eigvals[all_eigvals < 1.45]
+            plt.grid()
+            sector_label = f"k={k}, c={c}"
+            offset = (c+1)/2
+            plt.scatter([offset+k*3+i/(len(all_eigvals)+2) for i in range(1,len(all_eigvals)+1)], all_eigvals, s=5)
+            plt.xlabel("Sector")
+            plt.ylabel("Eigenvalue")
+            plt.legend()
 
-filename = "./results/momentum/ED_lamb-0.8660254037844386_mu-2_nsites-10_1747407130.json"
-with open(filename,"r") as file:
-    result = json.load(file)
-    #print(result)
-    eig_vals = remove_charge(result["eigval"])
-    eig_vals = eig_vals[:50]
-    x_pos = get_xpos_tower(eig_vals)
-    x_pos = np.array(x_pos)+1
-    plt.scatter(x_pos,eig_vals,s=5)
-    #x_labels = [f'nosym']
-    #plt.xticks([0], x_labels) 
+# filename = "./results/momentum/ED_lamb-0.8660254037844386_mu-2_nsites-10_1747407130.json"
+# with open(filename,"r") as file:
+#     result = json.load(file)
+#     #print(result)
+#     eig_vals = remove_charge(result["eigval"])
+#     eig_vals = eig_vals[:10]
+#     x_pos = get_xpos_tower(eig_vals)
+#     x_pos = np.array(x_pos)+1
+#     plt.scatter(x_pos,eig_vals,s=5)
+#     #x_labels = [f'nosym']
+#     #plt.xticks([0], x_labels) 
 
 plt.show()
 
