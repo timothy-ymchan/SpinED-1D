@@ -59,46 +59,6 @@ def apply_nn_hamiltonian(H,m,a,nsites,base=3):
 
     return coeff, b # the coefficients, the states
 
-# Legacy 
-# def build_nn_hamiltonian_sector(H,nsites,momentum,momentum_table,period_table,base=3):
-#     # The Hamiltonian is `sum_m H(m+1,m)` over `nsites` periodically
-#     # The code project the hamiltonian to a complete set of `momentum` representative states `states` with 
-#     float_type = np.complex128
-
-#     # Compute crystal momentum 
-#     k = 2*np.pi *momentum/nsites
-#     # Get all the relavent states representatives 
-#     states = []
-#     for P in momentum_table[momentum]:
-#         states = states + period_table[P]
-#     states = sorted(states) # Sort the states 
-#     logging.debug("States: ", [to_base(s,base,nsites) for s in states])
-
-#     # Build the matrix 
-#     sector_size = len(states)
-#     logging.debug(f"Building k={momentum} sector with size {sector_size}x{sector_size}")
-#     H_sector = np.zeros(shape=(sector_size,sector_size),dtype=float_type)
-
-#     for a in states:
-#         Pa = get_period(a,nsites,base)
-#         for m in range(nsites):
-#             coeffs, bs = apply_nn_hamiltonian(H,m,a,nsites,base)
-#             for coeff, b in zip(coeffs,bs):
-#                 b_rep, Pb, b_r = get_momentum_projection(b,nsites,momentum,base)
-#                 if b_rep >= 0: # Only if compatible 
-#                     assert b_rep in states, f"The state {b_rep} is lot in the list of states {states}"
-#                     phase = np.exp(-1.j*k*b_r)
-#                     norm = np.sqrt(Pa/Pb)
-#                     logging.debug(f"<{to_base(b_rep,base,nsites)}|H_{m}|{to_base(a,base,nsites)}> += {norm*phase*coeff}")
-#                     idc_out, idc_in = find_index(b_rep,states), find_index(a,states)
-#                     H_sector[idc_out,idc_in] += norm*phase*coeff
-    
-#     atol = 100*np.finfo(float_type).eps
-#     if not np.allclose(H_sector, H_sector.conj().T, atol=atol):
-#         max_diff = np.max(np.abs(H_sector - H_sector.conj().T))
-#         raise AssertionError(f"H_sector is not Hermitian up to 100 times machine precision {atol}. Max difference: {max_diff}")
-#     return H_sector
-
 def build_nn_hamiltonian_charged_sector(H,nsites,charged_states,momentum,base=3):
     # The code will not check if the charge conditions is satisfied explicitly. However, it will make sure the set of states closes
     # Float type 
