@@ -19,6 +19,18 @@ def get_momentum_projection(s,nsites,momentum,base=3):
         return -1,-1,-1
     return min_s, R, R_to_min
 
+def get_Zn_charge(state,charge_table,mod_n,base=3):
+    # charge_table is a look up table
+    hib_dim = len(charge_table) 
+    assert hib_dim == base, "State base should match the length of charge_table"
+    if state == 0:
+        return (charge_table[0]) % mod_n
+    tot_charge = 0
+    while state > 0:
+        tot_charge += charge_table[state % base] 
+        state //= base
+    return tot_charge % mod_n 
+
 def get_period(s,nsites,base=3):
     R = 1
     si = s
@@ -60,6 +72,28 @@ def construct_period_table(nsites,base=3):
     if logging.getLogger().isEnabledFor(logging.DEBUG):
         pprint_period_table(period_table=basis)
     return basis 
+
+def check_momentum(state,momentum,nsites,base=3):
+    # Check momentum of basis, only return the smallest weight state
+    P = get_period(state,nsites,base)
+    if P < 0:
+        return False
+    return momentum*P % nsites == 0 # Check if it is divisible
+
+def check_Zn_charge(state,charge,charge_table,mod_n,base=3):
+    # charge_table is a look up table
+    return (get_Zn_charge(state,charge_table,mod_n,base) - charge) % mod_n == 0
+
+def get_sector_basis(nsites,qnums,qnum_checker,base=3):
+    state_list = []
+    for state in range(base**nsites):
+        if all([qc(state,qn) for (qn,qc) in zip(qnums,qnum_checker)]):
+            state_list.append(state)
+    return sorted(state_list)
+
+
+# def construct_momentum_basis(nsites,momentum,base=3):
+#      # Construct basis set directly to save computation time
 
 # def construct_momentum_table(period_table,base=3):
 #     periods = sorted(period_table.keys())
@@ -104,23 +138,38 @@ def construct_momentum_table(period_table,base=3):
 
 
 if __name__ == "__main__":
-    # Get period of various numbers 
-    num = 5
-    print(f'The period of  {to_base(num,3,ndigit=5)} is',get_period(num,5))
-    num = 5
-    print(f'The period of {to_base(num,3,ndigit=6)} is ',get_period(num,6))
-    num =  9 + 1
-    print(f'The period of {to_base(num,3,ndigit=4)} is ',get_period(num,4))
-
-    num = (9 + 1)*3
-    print(f'The period of {to_base(num,3,ndigit=4)} is ',get_period(num,4))
-
-
-    # Compute period table 
-    pt = construct_period_table(nsites=6)
+    # Get charges for different states
+    charge_table = [0,1,2]
+    nsites = 3
+    # for state in range(3**nsites):
+    #     print(to_base(state,3,nsites),': ',get_Zn_charge(state,charge_table,mod_n=2,base=3))
+    Zn_checker = lambda state, charge : check_Zn_charge(state,charge,charge_table,mod_n=3)
+    k_checker = lambda state, momentum: check_momentum(state,momentum,nsites)
+    sector_basis = get_sector_basis(nsites,(2,),(k_checker,))
+    for state in sector_basis:
+        print(to_base(state,3,ndigit=nsites))
+     # # Compute period table 
+    pt = construct_period_table(nsites=nsites)
     pprint_period_table(pt)
     mt = construct_momentum_table(pt)
     print(mt)
+    # # Get period of various numbers 
+    # num = 5
+    # print(f'The period of  {to_base(num,3,ndigit=5)} is',get_period(num,5))
+    # num = 5
+    # print(f'The period of {to_base(num,3,ndigit=6)} is ',get_period(num,6))
+    # num =  9 + 1
+    # print(f'The period of {to_base(num,3,ndigit=4)} is ',get_period(num,4))
+
+    # num = (9 + 1)*3
+    # print(f'The period of {to_base(num,3,ndigit=4)} is ',get_period(num,4))
+
+
+    # # Compute period table 
+    # pt = construct_period_table(nsites=6)
+    # pprint_period_table(pt)
+    # mt = construct_momentum_table(pt)
+    # print(mt)
 
 
     # Momentum projection
