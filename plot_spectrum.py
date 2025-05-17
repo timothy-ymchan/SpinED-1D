@@ -6,6 +6,12 @@ import numpy as np
 from pathlib import Path
 
 
+def remove_charge(eigvals):
+    total = []
+    for k,v in eigvals.items():
+        total.append(np.array(v))
+    total = np.concatenate(total)
+    return np.sort(total)
 
 def pbc_keys(keys, nsites):
     # Keys are string keys of '0','1',...'nsites-1'
@@ -53,26 +59,62 @@ def get_xpos(eig_val,k):
 
 def get_xpos_tower(eig_val,dx=1/20):
     return [dx*i for i in range(len(eig_val))]
-   
-# Filename
-filename = "./results/momentum/ED_lamb-0.8660254037844386_mu-2_nsites-8_1747422117.json"
-# Plotting the results with symmetry
+
+#filename = "./results/nosym/ED_lamb-0.8660254037844386_mu-2_nsites-4_1747406556.json"
+filename = "./results/momentumZ3/ED_lamb-0.8660254037844386_mu-2_nsites-10_1747518172.json"
 with open(filename,"r") as file:
     result = json.load(file)
-    plt.grid()
-    momentum_keys,momentum_val = get_momentum(result)
-    for i,momentum in enumerate(momentum_keys):
-        all_eigvals = np.array(result['eigval'][momentum])
-        idc_filter = np.where(all_eigvals < 2)
-        eig_vals = all_eigvals[idc_filter]
-        k = momentum_val[i]
-        x_pos = get_xpos(eig_vals,k)
-        plt.scatter(x_pos,eig_vals,s=5)
-    x_labels = [f'k={k}' for k in momentum_val]
-    plt.xticks(momentum_val, x_labels)
-    # Show plot
-    basename = Path(filename).stem
-    plt.savefig(f'./figs/spectrum_{basename}.pdf')
+    #print(result)
+    eig_vals = remove_charge(result["eigval"])
+    eig_vals = eig_vals[:50]
+    x_pos = get_xpos_tower(eig_vals)
+    plt.scatter(x_pos,eig_vals,s=5)
+    x_labels = [f'nosym']
+    plt.xticks([0], x_labels) 
+
+filename = "./results/momentum/ED_lamb-0.8660254037844386_mu-2_nsites-10_1747407130.json"
+with open(filename,"r") as file:
+    result = json.load(file)
+    #print(result)
+    eig_vals = remove_charge(result["eigval"])
+    eig_vals = eig_vals[:50]
+    x_pos = get_xpos_tower(eig_vals)
+    x_pos = np.array(x_pos)+1
+    plt.scatter(x_pos,eig_vals,s=5)
+    #x_labels = [f'nosym']
+    #plt.xticks([0], x_labels) 
+
+plt.show()
+
+# filename = filename = "./results/nosym/ED_lamb-0.8660254037844386_mu-2_nsites-4_1747406556.json"
+# with open(filename,"r") as file:
+#     result = json.load(file)
+#     print(result)
+#     eig_vals = result["eigval"]
+#     x_pos = get_xpos_tower(eig_vals)
+#     plt.scatter(np.array(x_pos)+1,eig_vals,s=5)
+#     #x_labels = [f'nosym']
+#     #plt.xticks([0], x_labels)   
+#     plt.show()
+# # Filename
+# filename = "./results/momentum/ED_lamb-0.8660254037844386_mu-2_nsites-8_1747422117.json"
+# # Plotting the results with symmetry
+# with open(filename,"r") as file:
+#     result = json.load(file)
+#     plt.grid()
+#     momentum_keys,momentum_val = get_momentum(result)
+#     for i,momentum in enumerate(momentum_keys):
+#         all_eigvals = np.array(result['eigval'][momentum])
+#         idc_filter = np.where(all_eigvals < 2)
+#         eig_vals = all_eigvals[idc_filter]
+#         k = momentum_val[i]
+#         x_pos = get_xpos(eig_vals,k)
+#         plt.scatter(x_pos,eig_vals,s=5)
+#     x_labels = [f'k={k}' for k in momentum_val]
+#     plt.xticks(momentum_val, x_labels)
+#     # Show plot
+#     basename = Path(filename).stem
+#     plt.savefig(f'./figs/spectrum_{basename}.pdf')
 
 
 # with open(filename,"r") as file:
