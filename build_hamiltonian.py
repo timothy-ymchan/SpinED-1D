@@ -1,5 +1,5 @@
 from modular_arithmetic import circ_shift, to_base
-from basis_construction import get_momentum_projection, get_period, check_momentum, get_sector_basis, construct_period_table, construct_momentum_table
+from basis_construction import get_momentum_projection, get_period, check_momentum, get_sector_basis, construct_period_table, construct_momentum_table, get_Zn_charge
 import numpy as np
 from numpy import kron
 from scipy.linalg import expm, eigh
@@ -59,8 +59,7 @@ def apply_nn_hamiltonian(H,m,a,nsites,base=3):
 
     return coeff, b # the coefficients, the states
 
-def build_nn_hamiltonian_charged_sector(H,nsites,charged_states,momentum,base=3):
-    # The code will not check if the charge conditions is satisfied explicitly. However, it will make sure the set of states closes
+def build_nn_hamiltonian_charged_sector(H,nsites,charged_states,momentum,charge,charge_checker,base=3):
     # Float type 
     float_type = np.complex128
     # Compute crystal momentum 
@@ -77,7 +76,8 @@ def build_nn_hamiltonian_charged_sector(H,nsites,charged_states,momentum,base=3)
             coeffs, bs = apply_nn_hamiltonian(H,m,a,nsites,base)
             for coeff, b in zip(coeffs,bs):
                 b_rep, Pb, b_r = get_momentum_projection(b,nsites,momentum,base)
-                if b_rep >= 0: # Only if compatible 
+
+                if b_rep >= 0 and charge_checker(b,charge): # Only if compatible 
                     assert b_rep in charged_states, f"The state {b_rep} is lot in the list of states {charged_states}"
                     phase = np.exp(-1.j*k*b_r)
                     norm = np.sqrt(Pa/Pb)
@@ -113,7 +113,7 @@ if __name__ == "__main__":
         k_checker = lambda state, momentum: check_momentum(state,momentum,nsites)
         sector_basis = get_sector_basis(nsites,(momentum,),(k_checker,))
         print(f'Sector basis for k={momentum}',sector_basis)
-        H = build_nn_hamiltonian_charged_sector(Hnn,nsites,sector_basis,momentum)
+        H = build_nn_hamiltonian_charged_sector(Hnn,nsites,sector_basis,momentum,charge=-1,charge_checker=lambda s,c:True)
         #H = build_nn_hamiltonian_sector(Hnn, nsites, momentum, momentum_table, period_table)
         print("Sector size: ",H.shape)
         eigval = eigh(H, eigvals_only=True)
