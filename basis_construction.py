@@ -1,5 +1,5 @@
 import logging 
-from modular_arithmetic import circ_shift, to_base, change_digit
+from modular_arithmetic import circ_shift, to_base, num_to_digits
 from math import log
 
 def get_momentum_projection(s,nsites,momentum,base=3):
@@ -19,17 +19,19 @@ def get_momentum_projection(s,nsites,momentum,base=3):
         return -1,-1,-1
     return min_s, R, R_to_min
 
-def get_Zn_charge(state,charge_table,mod_n,base=3):
+def get_Zn_charge(state,charge_table,mod_n,nsites,base=3):
     # charge_table is a look up table
     hib_dim = len(charge_table) 
     assert hib_dim == base, "State base should match the length of charge_table"
-    if state == 0:
-        return (charge_table[0]) % mod_n
     tot_charge = 0
+    loop_count = 0
     while state > 0:
         tot_charge += charge_table[state % base] 
         state //= base
-    return tot_charge % mod_n 
+        loop_count += 1
+    tot_charge += (nsites-loop_count)*charge_table[0] # The rest are zeros
+    return tot_charge % mod_n
+
 
 def get_period(s,nsites,base=3):
     R = 1
@@ -80,9 +82,9 @@ def check_momentum(state,momentum,nsites,base=3):
         return False
     return momentum*P % nsites == 0 # Check if it is divisible
 
-def check_Zn_charge(state,charge,charge_table,mod_n,base=3):
+def check_Zn_charge(state,charge,charge_table,mod_n,nsites,base=3):
     # charge_table is a look up table
-    return (get_Zn_charge(state,charge_table,mod_n,base) - charge) % mod_n == 0
+    return (get_Zn_charge(state,charge_table,mod_n,nsites,base) - charge) % mod_n == 0
 
 def get_sector_basis(nsites,qnums,qnum_checker,base=3):
     state_list = []
@@ -91,6 +93,13 @@ def get_sector_basis(nsites,qnums,qnum_checker,base=3):
             state_list.append(state)
     return sorted(state_list)
 
+def pprint_charge_str(state,charge_table,nsites,base=3):
+    # Pretty print charge explitcitly for debug purpose
+    digits = to_base(state,base,nsites)
+    out_str = ""
+    for d in digits:
+        out_str = out_str + f"({charge_table[int(d)]})"
+    print(out_str)
 
 # def construct_momentum_basis(nsites,momentum,base=3):
 #      # Construct basis set directly to save computation time
