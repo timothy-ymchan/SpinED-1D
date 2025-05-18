@@ -6,6 +6,6 @@
 ## Next step
 - semi momentum conservation (low priority, my use case does not have parity)
 
-## Demo 
-Transverse field ising model demonstration
+## Transverse field ising model demonstration demo 
+
 ![tfi_ising](https://github.com/user-attachments/assets/22195e9b-e821-406b-aca9-63c1bb865f18)
