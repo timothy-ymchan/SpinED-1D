@@ -30,7 +30,7 @@ def build_nn_hamiltonian_nosym(H,nsites):
     for i in range(nsites-2):
         H0 = kron(H0,np.eye(hib_onsite))
     H0 = H0.reshape([hib_onsite]*(2*nsites)) # relabel the legs 
-    print('H0 has shape', H0.shape)
+    #print('H0 has shape', H0.shape)
 
     # Cycle through all sites and sum the hamiltonian 
     idcs = np.arange(nsites)
