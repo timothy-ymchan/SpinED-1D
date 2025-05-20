@@ -1,6 +1,10 @@
 import logging 
 from modular_arithmetic import circ_shift, to_base, num_to_digits
 from math import log
+import os
+import shutil
+import glob
+import json
 
 def get_momentum_projection(s,nsites,momentum,base=3):
     si = s
@@ -75,6 +79,105 @@ def construct_period_table(nsites,base=3):
         pprint_period_table(period_table=basis)
     return basis 
 
+def clear_cache(cache_dir):
+    print(f"Cleaning up {cache_dir}. Removing all contents.")
+    for filename in os.listdir(cache_dir):
+        file_path = os.path.join(cache_dir, filename)
+        if os.path.isfile(file_path) or os.path.islink(file_path):
+            os.unlink(file_path)
+        elif os.path.isdir(file_path):
+            shutil.rmtree(file_path)
+
+def construct_period_table_cache(nsites,cache_dir,base=3):
+
+    # Manage the cache_dir
+    if not os.path.exists(cache_dir):
+        print(f"Directory does not exist. Creating {cache_dir}")
+        os.makedirs(cache_dir)
+    else:
+        print(f"Directory {cache_dir} exists. Removing all contents.")
+        for filename in os.listdir(cache_dir):
+            file_path = os.path.join(cache_dir, filename)
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+    
+    # Start building basis
+    periods = []
+    for s in range(0, base**nsites):
+        P = get_period(s, nsites)
+        if P > 0:
+            period_file = os.path.join(cache_dir, f"period_{P}.state")
+            mode = 'a' if os.path.exists(period_file) else 'w'
+            with open(period_file, mode) as f:
+                f.write(f"{s}\n")
+            if not (P in periods):
+                periods.append(P)
+    
+    # Write a config.json 
+    config_path = os.path.join(cache_dir, "sector_info.json")
+    with open(config_path, "w") as f:
+        json.dump({"periods":sorted(periods)}, f, indent=2)
+    # Print complete message
+    print(f"Completed constructing period table cache in {cache_dir}")
+
+def refine_cache_period_table_by_charge(nsites,charge_getter,cache_dir,base=3):
+    # Check if cache_dir exists and contains *.state files
+    if not os.path.exists(cache_dir):
+        raise FileNotFoundError(f"Cache directory '{cache_dir}' does not exist.")
+    state_files = glob.glob(os.path.join(cache_dir, "*.state"))
+    if not state_files:
+        raise FileNotFoundError(f"No '.state' files found in cache directory '{cache_dir}'.")
+    
+    
+    # Read periods from sector_info.json
+    config_path = os.path.join(cache_dir, "sector_info.json")
+    with open(config_path, "r") as f:
+        config = json.load(f)
+    periods = config.get("periods", [])
+
+    period_charge = []
+    for P in periods:
+        state_file = f"{cache_dir}/period_{P}.state"
+        charge_file_path = f"{cache_dir}/period_{P}"
+        with open(state_file, 'r') as f:
+            states = [int(line.strip()) for line in f if line.strip()]
+        for state in states:
+            state_charge = charge_getter(state,nsites,base)
+            charge_file = f"{charge_file_path}-charge_{state_charge}.state"
+            mode = 'a' if os.path.exists(charge_file) else 'w'
+            with open(charge_file, mode) as cf:
+                cf.write(f"{state}\n")
+            if (P,state_charge) not in period_charge:
+                period_charge.append((P,state_charge))
+    
+    # Add period_charge to sector_info.json
+    with open(config_path, "r") as f:
+        config = json.load(f)
+    config["period_charge"] = period_charge
+    with open(config_path, "w") as f:
+        json.dump(config, f, indent=2)
+    
+    print(f"Finished refining cache period table by charge in {cache_dir}")
+
+def get_cache_charged_momentum_state(cache_dir,momentum,charge,nsites):
+    config_path = os.path.join(cache_dir, "sector_info.json")
+    with open(config_path, "r") as f:
+        config = json.load(f)
+    period_charge = config.get("period_charge", [])
+    compatible_period = [p for (p,c) in sorted(period_charge) if c == charge and p*momentum % nsites == 0]
+    states = []
+    for P in compatible_period:
+        state_file = os.path.join(cache_dir, f"period_{P}-charge_{charge}.state")
+        if os.path.exists(state_file):
+            with open(state_file, "r") as f:
+                states.extend([int(line.strip()) for line in f if line.strip()])
+        else:
+            raise FileNotFoundError(f"State file '{state_file}' does not exist.")
+    return sorted(states)
+
+    
 def check_momentum(state,momentum,nsites,base=3):
     # Check momentum of basis, only return the smallest weight state
     P = get_period(state,nsites,base)
@@ -147,21 +250,29 @@ def construct_momentum_table(period_table,base=3):
 
 
 if __name__ == "__main__":
-    # Get charges for different states
-    charge_table = [0,1,2]
-    nsites = 3
-    # for state in range(3**nsites):
-    #     print(to_base(state,3,nsites),': ',get_Zn_charge(state,charge_table,mod_n=2,base=3))
-    Zn_checker = lambda state, charge : check_Zn_charge(state,charge,charge_table,mod_n=3)
-    k_checker = lambda state, momentum: check_momentum(state,momentum,nsites)
-    sector_basis = get_sector_basis(nsites,(2,),(k_checker,))
-    for state in sector_basis:
-        print(to_base(state,3,ndigit=nsites))
-     # # Compute period table 
-    pt = construct_period_table(nsites=nsites)
-    pprint_period_table(pt)
-    mt = construct_momentum_table(pt)
-    print(mt)
+    #construct_period_table_cache(12,"./momentum_basis_N12")
+    charge_table = [-1,0,1]
+    Z3_charge_getter = lambda s,nsite,base: get_Zn_charge(s,charge_table,3,nsite,base)
+    states = get_cache_charged_momentum_state("./momentum_basis_N12",momentum=1,charge=0,nsites=12)
+    print(states)
+    print(len(states))
+    #refine_cache_period_table_by_charge(12,Z3_charge_getter,"./momentum_basis_N12")
+    #get_cache_charged_momentum_state(1,0,1,2)
+    # # Get charges for different states
+    # charge_table = [0,1,2]
+    # nsites = 3
+    # # for state in range(3**nsites):
+    # #     print(to_base(state,3,nsites),': ',get_Zn_charge(state,charge_table,mod_n=2,base=3))
+    # Zn_checker = lambda state, charge : check_Zn_charge(state,charge,charge_table,mod_n=3)
+    # k_checker = lambda state, momentum: check_momentum(state,momentum,nsites)
+    # sector_basis = get_sector_basis(nsites,(2,),(k_checker,))
+    # for state in sector_basis:
+    #     print(to_base(state,3,ndigit=nsites))
+    #  # # Compute period table 
+    # pt = construct_period_table(nsites=nsites)
+    # pprint_period_table(pt)
+    # mt = construct_momentum_table(pt)
+    # print(mt)
     # # Get period of various numbers 
     # num = 5
     # print(f'The period of  {to_base(num,3,ndigit=5)} is',get_period(num,5))
