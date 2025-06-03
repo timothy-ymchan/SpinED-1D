@@ -12,23 +12,22 @@ def remove_charge(eigvals):
     total = np.concatenate(total)
     return np.sort(total)
 
-def analytic_energy(J,g,L):
+def analytic_energy(J,h,L):
     #print(floor(L/2))
     if L % 2 == 0:
         k = np.array([(2*n-1)*np.pi/L for n in range(1,floor(L/2)+1)])
-        return -2*J*np.sum(np.sqrt((np.cos(k)+g)**2 + np.sin(k)**2)) 
+        return -2*J*np.sum(np.sqrt((np.cos(k)-h/J)**2 + np.sin(k)**2)) 
     else:
-        print('Odd')
-        k_PBC = np.array([(2*n)*np.pi/L for n in range(1,floor(L/2))])
+        #k_PBC = np.array([(2*n)*np.pi/L for n in range(1,floor(L/2))])
         k_ABC = np.array([(2*n-1)*np.pi/L for n in range(1,floor(L/2)+1)])
-        E_PBC = -2*J*np.sum(np.sqrt((np.cos(k_PBC)+g)**2 + np.sin(k_PBC)**2)) + 2*J  + g*J
-        E_ABC = -2*J*np.sum(np.sqrt((np.cos(k_ABC)+g)**2 + np.sin(k_ABC)**2)) 
-        return  E_PBC,E_ABC#np.minimum(E_PBC,E_ABC)
+        #E_PBC = -2*J*np.sum(np.sqrt((np.cos(k_PBC)-h/J)**2 + np.sin(k_PBC)**2)) 
+        E_ABC = -2*J*np.sum(np.sqrt((np.cos(k_ABC)-h/J)**2 + np.sin(k_ABC)**2)) -h - J
+        return  E_ABC#np.minimum(E_PBC,E_ABC)
     #print(len(k))
     
 
 
-nsites_list = [7]  # Adjust as needed
+nsites_list = [14]  # Adjust as needed
 K_max = 20
 for nsites in nsites_list:
     # if nsites % 2 == 1:
@@ -50,14 +49,9 @@ for nsites in nsites_list:
     sort_idx = np.argsort(lambdas)
     lambdas_sorted = lambdas[sort_idx]
     eig_sorted = eig[:, sort_idx]
-    if nsites % 2 == 0:
-        En_anal = np.array([analytic_energy(.25,-2*g,nsites) for g in lambdas_sorted])
-        plt.plot(lambdas_sorted,En_anal,label='Analytical')
-    else:
-        E_PBC= np.array([analytic_energy(.25,-2*g,nsites)[0] for g in lambdas_sorted])
-        E_ABC= np.array([analytic_energy(.25,-2*g,nsites)[1] for g in lambdas_sorted])
-        plt.plot(lambdas_sorted,E_PBC)
-        plt.plot(lambdas_sorted,E_ABC)
+
+    En_anal = np.array([analytic_energy(.25,0.5*g,nsites) for g in lambdas_sorted])
+    plt.plot(lambdas_sorted,En_anal,label='Analytical')
     #print(En_anal[:2])
     
     plt.plot(lambdas_sorted,eig_sorted[0]*nsites,label='Numerical',ls='',marker='x')
