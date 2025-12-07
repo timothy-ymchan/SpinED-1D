@@ -10,9 +10,12 @@ import json
 import time
 
 def main():
-    lamb = np.sqrt(3)/2
-    mu = 2
-    ED_momentum_Z3(lamb,mu,10)
+    for L in [3,4,5,6,7]:
+        # lamb = np.sqrt(3)/2
+        for lamb in np.linspace(0.84,0.88,21):
+        #    print(lamb) 
+            mu = 2
+            ED_nosym(lamb,mu,L)
 
 
 
@@ -29,28 +32,28 @@ def ED_nosym(lamb,mu,nsites):
     hermitian_check = np.sum((H_nosym - H_nosym.conj().T)**2)
     print(hermitian_check)
     eigval = eigh(H_nosym,eigvals_only=True)
-    eigval /= nsites
+    # eigval /= nsites
     result = {'eigval':eigval.tolist(),'lamb':lamb,'mu':mu,'nsites':nsites}
     
     # Dump results 
     timestamp = int(time.time())
-    with open(f"./results/nosym/ED_lamb-{lamb}_mu-{mu}_nsites-{nsites}_{timestamp}.json","w") as file:
+    with open(f"./python/results/nosym/ED_lamb-{lamb}_mu-{mu}_nsites-{nsites}_{timestamp}.json","w") as file:
         json.dump(result,file)
 
 def ED_momentum(lamb,mu,nsites):
     Hnn = A4_Hamiltonian(lamb,mu)
     
-    result = {'eigval':{},'lamb':lamb,'mu':mu,'nsites':nsites}
+    result = {'eigval':[],'lamb':lamb,'mu':mu,'nsites':nsites}
     for k in range(0,nsites):
         k_checker = lambda state, momentum: check_momentum(state,momentum,nsites) # Build basis on the fly to use less memory 
         sector_basis = get_sector_basis(nsites,(k),(k_checker,))
 
         H = build_nn_hamiltonian_charged_sector(Hnn,nsites,sector_basis,k) # Build sector 
         print(f'Sector size for {k}: {H.shape}')
-        #eig_vals = eigh(H,eigvals_only=True)
-        eig_vals = eigsh(H,k=20,which='LM',sigma=0,return_eigenvectors=False)
-        eig_vals = np.sort(eig_vals)
-        result['eigval'][k] = sorted((eig_vals/nsites).tolist())
+        eig_vals = eigh(H,eigvals_only=True)
+        # eig_vals = eigsh(H,k=20,which='LM',sigma=0,return_eigenvectors=False)
+        eig_vals = np.sort(eig_vals)[:20] # The the lowest 20 eigenvalues 
+        result['eigval'].append({'en':eig_vals.tolist(),'qn':{'k':k}})
 
     # Dump results 
     timestamp = int(time.time())
@@ -70,7 +73,7 @@ def ED_momentum_Z3(lamb,mu,nsites):
     
     Z3_checker = lambda state, charge : check_Zn_charge(state,charge,charge_table,mod_n=3,nsites=nsites) # Check Z3 charge
     k_checker = lambda state, momentum: check_momentum(state,momentum,nsites)
-    result = {'eigval':{},'lamb':lamb,'mu':mu,'nsites':nsites}
+    result = {'eigval':[],'lamb':lamb,'mu':mu,'nsites':nsites}
     for k in range(0,nsites):
         for charge in charge_table:
             print(f'k={k} c={charge}')
@@ -82,10 +85,12 @@ def ED_momentum_Z3(lamb,mu,nsites):
             H = build_nn_hamiltonian_charged_sector(Hnn,nsites,sector_basis,k,charge=charge,charge_checker=Z3_checker) # Build sector 
             print(f'Sector size for k={k}, charge={charge}: {H.shape}')
             eig_vals = eigh(H,eigvals_only=True)
-            result['eigval'][str((k,charge))]=sorted((eig_vals/nsites).tolist())
+            eig_vals = np.sort(eig_vals)
+            result['eigval'].append({'en':eig_vals.tolist(),'qn':{'k':k,'charge':charge}})
+            # result['eigval'][str((k,charge))]=sorted((eig_vals/nsites).tolist())
     # Dump results 
     timestamp = int(time.time())
-    with open(f"./results/momentumZ3/ED_lamb-{lamb}_mu-{mu}_nsites-{nsites}_{timestamp}.json","w") as file:
+    with open(f"./python/results/momentumZ3/ED_lamb-{lamb}_mu-{mu}_nsites-{nsites}_{timestamp}.json","w") as file:
        json.dump(result,file)
 
 if __name__ == "__main__":

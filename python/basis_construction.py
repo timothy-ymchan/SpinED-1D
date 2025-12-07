@@ -251,11 +251,11 @@ def construct_momentum_table(period_table,base=3):
 
 if __name__ == "__main__":
     #construct_period_table_cache(12,"./momentum_basis_N12")
-    charge_table = [-1,0,1]
-    Z3_charge_getter = lambda s,nsite,base: get_Zn_charge(s,charge_table,3,nsite,base)
-    states = get_cache_charged_momentum_state("./momentum_basis_N12",momentum=1,charge=0,nsites=12)
-    print(states)
-    print(len(states))
+    # charge_table = [-1,0,1]
+    # Z3_charge_getter = lambda s,nsite,base: get_Zn_charge(s,charge_table,3,nsite,base)
+    # states = get_cache_charged_momentum_state("./momentum_basis_N12",momentum=1,charge=0,nsites=12)
+    # print(states)
+    # print(len(states))
     #refine_cache_period_table_by_charge(12,Z3_charge_getter,"./momentum_basis_N12")
     #get_cache_charged_momentum_state(1,0,1,2)
     # # Get charges for different states
@@ -286,8 +286,8 @@ if __name__ == "__main__":
 
 
     # # Compute period table 
-    # pt = construct_period_table(nsites=6)
-    # pprint_period_table(pt)
+    pt = construct_period_table(nsites=6)
+    pprint_period_table(pt)
     # mt = construct_momentum_table(pt)
     # print(mt)
 

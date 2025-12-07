@@ -8,18 +8,17 @@ from scipy.sparse.linalg import eigsh
 import time
 import json 
 
-X = 0.5*np.array([[0,1],[1,0]])
-Z = 0.5*np.array([[1,0],[0,-1]])
+X = np.array([[0,1],[1,0]])
+Z = np.array([[1,0],[0,-1]])
 Id = np.eye(2)
 
 def main():
-    for nsites in [2,4,6]:
-        gs = np.linspace(0,1,51)
-        for g in gs:
-            ED_momentum_Z2(g,nsites)
+    for nsites in [16]:
+        g = 1
+        ED_momentum_Z2(g,nsites)
 
 def TFI_Hamiltonian(g):
-    return kron(X,X) - g*(kron(Z,Id))
+    return -kron(X,X) - g*(kron(Z,Id))
 
 def ED_nosym(g,nsites):
     Hnn = TFI_Hamiltonian(g)
@@ -60,7 +59,7 @@ def ED_momentum_Z2(g,nsites):
     charge_table = [0,1]
     Z2_checker = lambda state, charge : check_Zn_charge(state,charge,charge_table,mod_n=2,nsites=nsites,base=2) # Check Z3 charge
     k_checker = lambda state, momentum: check_momentum(state,momentum,nsites,base=2)
-    result = {'eigval':{},'g':g,'nsites':nsites}
+    result = {'eigval':[],'g':g,'nsites':nsites}
 
     for k in range(0,nsites):
         for charge in charge_table:
@@ -73,11 +72,13 @@ def ED_momentum_Z2(g,nsites):
             H = build_nn_hamiltonian_charged_sector(Hnn,nsites,sector_basis,k,charge=charge,charge_checker=Z2_checker,base=2) # Build sector 
             print(f'Sector size for k={k}, charge={charge}: {H.shape}')
             eig_vals = eigh(H,eigvals_only=True)
-            result['eigval'][str((k,charge))]=sorted((eig_vals/nsites).tolist())
+            sector_eigs = {"ev":np.sort(eig_vals).tolist(), "charge":{"k":k,"Z2":charge}}
+            result['eigval'].append(sector_eigs)
+            # result['eigval'][str((k,charge))]=)
 
     # Dump results 
     timestamp = int(time.time())
-    with open(f"./TFI/momentumZ2/ED_g-{g:.3f}_nsites-{nsites}_{timestamp}.json","w") as file:
+    with open(f"./TFI/momentumZ2/ED_qubit_g-{g:.3f}_nsites-{nsites}_{timestamp}.json","w") as file:
        json.dump(result,file)
 if __name__ == "__main__":
     main()
