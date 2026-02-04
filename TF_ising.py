@@ -13,13 +13,13 @@ Z = 0.5*np.array([[1,0],[0,-1]])
 Id = np.eye(2)
 
 def main():
-    for nsites in [2,4,6]:
+    for nsites in [2,4,5,6,7,8,9,10,11,12,13,14]:
         gs = np.linspace(0,1,51)
         for g in gs:
             ED_momentum_Z2(g,nsites)
 
 def TFI_Hamiltonian(g):
-    return kron(X,X) - g*(kron(Z,Id))
+    return -kron(X,X) + g*(kron(Z,Id))
 
 def ED_nosym(g,nsites):
     Hnn = TFI_Hamiltonian(g)

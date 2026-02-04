@@ -167,6 +167,8 @@ def get_cache_charged_momentum_state(cache_dir,momentum,charge,nsites):
         config = json.load(f)
     period_charge = config.get("period_charge", [])
     compatible_period = [p for (p,c) in sorted(period_charge) if c == charge and p*momentum % nsites == 0]
+    if not compatible_period:
+        raise ValueError(f"No compatible periods found for momentum={momentum}, charge={charge}, nsites={nsites}")
     states = []
     for P in compatible_period:
         state_file = os.path.join(cache_dir, f"period_{P}-charge_{charge}.state")

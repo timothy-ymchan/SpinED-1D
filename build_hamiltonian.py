@@ -39,6 +39,25 @@ def build_nn_hamiltonian_nosym(H,nsites):
     H_periodic = sum([np.permute_dims(H0,ax) for ax in permute_axes])
     return H_periodic.reshape(hib_onsite**nsites,hib_onsite**nsites)
 
+def build_klocal_hamiltonian_nosym(H,nsites,k):
+    # Build periodic hamiltonian from `k`` local term `H` on `nsites`
+    hib_onsite = round(np.sqrt(H.shape[0]))
+    assert H.shape == (hib_onsite*hib_onsite, hib_onsite*hib_onsite), f"hib_onsite ({hib_onsite}) does not match that of the shape of H ({H.shape})"
+    assert nsites >= k, f"Nearest Neighbour Hamiltonian needs at least {k} sites"
+
+    # Build hamiltonian by direct product 
+    H0 = H 
+    for i in range(nsites-k):
+        H0 = kron(H0,np.eye(hib_onsite))
+    H0 = H0.reshape([hib_onsite]*(2*nsites)) # relabel the legs 
+
+    # Cycle through all sites and sum the hamiltonian 
+    idcs = np.arange(nsites)
+    #print(idcs)
+    permute_axes = [np.concatenate(((idcs+i) % nsites,(idcs+i) % nsites+nsites)) for i in range(nsites)]
+    H_periodic = sum([np.permute_dims(H0,ax) for ax in permute_axes])
+    return H_periodic.reshape(hib_onsite**nsites,hib_onsite**nsites)
+
 
 def apply_nn_hamiltonian(H,m,a,nsites,base=3):
     # Apply hamiltonian `H(m+1,m)`` to the state `a` periodically, with a number of sites `nsites`
