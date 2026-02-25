@@ -38,6 +38,12 @@ function has_charge(state::Int,charge::Momentum)
     return charge.k * P % charge.nsites == 0
 end
 
+has_metadata(::Momentum) = true
+
+function get_metadata(state::Int,c::Momentum)
+    get_period(state,c.nsites;base=c.base)
+end
+
 # Zn charge 
 struct ZNCharge <: AbelianCharge
     N::Int
@@ -63,12 +69,15 @@ function get_charge(state::Int,charge::ZNCharge)
     # sum([charge.charge_table[c-'0'+1] for c in str_state]) % charge.N # YM, 2/24 : Old version. One-liner but slightly slower.
 end
 
-
 has_charge(state::Int,charge::ZNCharge) = get_charge(state,charge) == charge.c
+
+has_metadata(::ZNCharge) = false 
+
 
 # Compute sector basis 
 function get_sector_basis(base::Int,nsites::Int,charges::Vector{<:AbelianCharge})
     state_list = Vector{Int}()
+
     for state in 0:(base^(nsites)-1)
         if all([has_charge(state,c) for c in charges])
             push!(state_list,state)
@@ -77,14 +86,45 @@ function get_sector_basis(base::Int,nsites::Int,charges::Vector{<:AbelianCharge}
     return sort(state_list)
 end
 
+function get_metadata(state_list::Vector{Int},charges::Vector{<:AbelianCharge})
+    metadata = Dict{Int,Any}()
+    # Initialize empty list for charges with metadata
+    for i in 1:length(charges)
+        if has_metadata(charges[i])
+            metadata[i] = []
+        end
+    end
+
+    # Compute the metadata for all states
+    for s in state_list
+        for k in keys(metadata)
+            push!(metadata[k],get_metadata(s,charges[k]))
+        end
+    end
+
+    # Return metadata
+    metadata
+end
+
+# Charged sector 
+struct ChargedSector
+    nsites::Int 
+    base::Int
+    state_list::Vector{Int}
+    charges::Vector{<:AbelianCharge}
+    metadata::Dict{Int,Any}()
+    state_indices::Vector{Int}
+end
+
 let 
     # Check that the basis constructed are the same as what we had in python 
     k0 = 0
-    nsites = 15
+    nsites = 8
     base = 3
     k_charge = Momentum(;k=k0,nsites=nsites,base=base)
     z3_charge = ZNCharge(;N=3,c=0,nsites=nsites,charge_table=[1,0,-1])
 
-    @time basis = get_sector_basis(base,nsites,[k_charge,z3_charge])
-
+    basis = get_sector_basis(base,nsites,[k_charge,z3_charge])
+    # println(basis)
+    println(get_metadata(basis,[k_charge,z3_charge]))
 end 
