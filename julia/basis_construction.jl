@@ -23,7 +23,7 @@ struct Momentum <: AbelianCharge
     nsites::Int
     k::Int
     base::Int
-    function Momentum(k::Int,nsites::Int;base::Int)
+    function Momentum(;k::Int,nsites::Int,base::Int)
         new(nsites,mod(k,nsites),base)
     end
 end
@@ -39,10 +39,32 @@ function has_charge(state::Int,charge::Momentum)
 end
 
 # Zn charge 
-# struct ZnCharge <: AbelianCharge
-#     n::Int
-#     charge_table::Vector{}
-# end
+struct ZNCharge <: AbelianCharge
+    N::Int
+    c::Int
+    nsites::Int
+    charge_table::Vector{Int} # The basis element i has charge charge_table[i]
+
+    function ZNCharge(;N::Int,c::Int,nsites::Int,charge_table::Vector{Int})
+        length(charge_table) == N || throw("Charge table length should be the same as N")
+        new(N,mod(c,N),nsites,[mod(cc,N) for cc in charge_table])
+    end
+end
+Base.show(io::IO, c::ZNCharge) = print(io,"Z$(c.N)Charge(c=$(c.c),nsites=$(c.nsites),charge_table=$(c.charge_table))")
+
+
+function get_charge(state::Int,charge::ZNCharge)
+    str_state = num_to_digits(state,charge.N;ndigit=charge.nsites)
+    tot_charge = 0
+    for c in str_state
+         tot_charge += charge.charge_table[c-'0'+1]
+    end
+    tot_charge % charge.N
+    # sum([charge.charge_table[c-'0'+1] for c in str_state]) % charge.N # YM, 2/24 : Old version. One-liner but slightly slower.
+end
+
+
+has_charge(state::Int,charge::ZNCharge) = get_charge(state,charge) == charge.c
 
 # Compute sector basis 
 function get_sector_basis(base::Int,nsites::Int,charges::Vector{<:AbelianCharge})
@@ -54,3 +76,15 @@ function get_sector_basis(base::Int,nsites::Int,charges::Vector{<:AbelianCharge}
     end
     return sort(state_list)
 end
+
+let 
+    # Check that the basis constructed are the same as what we had in python 
+    k0 = 0
+    nsites = 15
+    base = 3
+    k_charge = Momentum(;k=k0,nsites=nsites,base=base)
+    z3_charge = ZNCharge(;N=3,c=0,nsites=nsites,charge_table=[1,0,-1])
+
+    @time basis = get_sector_basis(base,nsites,[k_charge,z3_charge])
+
+end 
