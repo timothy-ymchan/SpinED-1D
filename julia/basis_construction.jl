@@ -16,6 +16,10 @@ function get_period(s::Int,nsites::Int;base::Int)
     return R
 end
 
+function get_period(s::Vector{Int},nsites::Int;base::Int) # Vectorized version
+    [get_period(ss,nsites;base=base) for ss in s]
+end
+
 abstract type AbelianCharge end
 
 # Crystal momentum 
@@ -106,25 +110,45 @@ function get_metadata(state_list::Vector{Int},charges::Vector{<:AbelianCharge})
     metadata
 end
 
-# Charged sector 
-struct ChargedSector
+
+# Momentum sectors (possibly with charges)
+
+struct MomentumSector
     nsites::Int 
     base::Int
-    state_list::Vector{Int}
+    momentum::Momentum
+    state_list::Vector{Int} # index => state 
+    period_list::Vector{Int} # index => period
+    index_dict::Dict{Int,Int} # state => index
     charges::Vector{<:AbelianCharge}
-    metadata::Dict{Int,Any}()
-    state_indices::Vector{Int}
+
+    function MomentumSector(;base::Int,nsites::Int,k::Int, charges::Vector{<:AbelianCharge}=[])
+        momentum = Momentum(;k=k,nsites=nsites,base=base)
+        state_list = get_sector_basis(base,nsites,[momentum; charges])
+        period_list = get_period(state_list,nsites;base=base)
+        index_dict = Dict(state_list[i]=>i for i in 1:length(state_list))
+        new(nsites,base,momentum,state_list,period_list,index_dict,charges)
+    end
 end
 
-let 
-    # Check that the basis constructed are the same as what we had in python 
-    k0 = 0
-    nsites = 8
-    base = 3
-    k_charge = Momentum(;k=k0,nsites=nsites,base=base)
-    z3_charge = ZNCharge(;N=3,c=0,nsites=nsites,charge_table=[1,0,-1])
 
-    basis = get_sector_basis(base,nsites,[k_charge,z3_charge])
-    # println(basis)
-    println(get_metadata(basis,[k_charge,z3_charge]))
-end 
+Base.show(io::IO,ms::MomentumSector) = print(io,"$(ms.momentum) sector with $(length(ms.state_list)) states.\nCharges: $(ms.charges)")
+
+function find_index(state::Int, sector::MomentumSector)
+    get(sector.index_dict,state,-1)
+end
+
+# let 
+#     # Check that the basis constructed are the same as what we had in python 
+#     k0 = 0
+#     nsites = 12
+#     base = 3
+#     k_charge = Momentum(;k=k0,nsites=nsites,base=base)
+#     z3_charge = ZNCharge(;N=3,c=0,nsites=nsites,charge_table=[1,0,-1])
+
+#     # basis = get_sector_basis(base,nsites,[k_charge,z3_charge])
+#     # println(basis)
+#     # println(get_metadata(basis,[k_charge,z3_charge]))
+
+#     sector = MomentumSector(;base=3,nsites=nsites,k=0,charges=[z3_charge]);
+# end 
