@@ -128,7 +128,7 @@ function (H::PeriodicHamiltonianNN{T})(v0::AbstractVector{T}) where {T <: Number
     sector_size = block_size(H)
     length(v0) == sector_size || throw("v0 has shape $(size(v0)), but there are $(sector_size) basis")
 
-    Hv = zeros(dtype(H),sector_size)
+    Hv = zeros(T,sector_size)
     basis = H.momentum_sector
     nsites = basis.nsites
     base = basis.base
@@ -147,12 +147,14 @@ function (H::PeriodicHamiltonianNN{T})(v0::AbstractVector{T}) where {T <: Number
             for (coeff,  ψout) in zip(coeffs, ψouts)
                 ψout_rep, Pout,  ψout_r = get_momentum_projection(ψout,nsites,momentum,base)
                 # println("R_to_min: $(ψout_r); k=$k")
-                idc_out = find_index(ψout_rep,basis)
-                if ψout_rep >= 0 && idc_out > 0
-                    phase = exp(-im*k*ψout_r)
-                    norm = sqrt(Pin/Pout)
-                    # println("H[$idc_out] += $(norm*phase*coeff)")
-                    Hv[idc_out] += norm*phase*coeff
+                if ψout_rep >= 0
+                    idc_out = find_index(ψout_rep,basis)
+                    if  idc_out > 0
+                        phase = exp(-im*k*ψout_r)
+                        norm = sqrt(Pin/Pout)
+                        # println("H[$idc_out] += $(norm*phase*coeff)")
+                        Hv[idc_out] += norm*phase*coeff*v0[i]
+                    end
                 end
             end
         end
@@ -161,42 +163,73 @@ function (H::PeriodicHamiltonianNN{T})(v0::AbstractVector{T}) where {T <: Number
     return Hv
 end
 
+function get_matrix(H::PeriodicHamiltonianNN{T}) where {T <: Number}
+    dim = block_size(H)
+    M = zeros(T,dim,dim)
+    for i in 1:dim 
+        e = zeros(T,dim)
+        e[i] = one(T)
+        M[1:end,i] = H(e)
+    end
+    return M
+end
+
 
 let 
     using LinearAlgebra
     using KrylovKit
+    using Plots
     Hnn = let 
         include("./spin_operators.jl")
-        Sp,Sm,Sz = spin_operators(;S=3) # Spin 1 
-        # (0.5+0*im)* (kron(Sp,Sm) + kron(Sm,Sp)) + kron(Sz,Sz)
-        H0 = randn(ComplexF64,9,9)
-        H0 + H0'
+        Sp,Sm,Sz = spin_operators(ComplexF64;S=3) # Spin 1/2
+        (0.5)* (kron(Sp,Sm) + kron(Sm,Sp)) + kron(Sz,Sz)
     end
+
     # Check that the basis constructed are the same as what we had in python 
     k0 = 2
 
     base = 3
-    nsites = 12
+    nsites = 11
 
     # get_nn_hamiltonian_nosym(Hnn,nsites,base)
     @time H = NosymHamiltonianNN(Hnn,nsites,base)
     N = block_size(H)
     println(N)
-    # M = get_matrix(H)
 
-    # @time vals1, vecs1 = eigsolve(v->H(v),randn(dtype(H),N),5,:SR)
-    # vals2, vecs2 = eigen(M)
+    #println("Hermitian check: ", maximum(abs.(M-M')))
+    num_eig = 10
+    @time vals1, vecs1 = eigsolve(v->H(v),randn(dtype(H),N),num_eig,:SR;ishermitian=true,tol=1e-12,krylovdim=20)
+    # @time vals2, vecs2 = eigen(M)
 
-    # println("Using Krylov methods: ",real.(vals1))
+    println("Using Krylov methods: ",real.(vals1))
+    # println("Real and imaginary parts of Kyrlov: ", vals1)
+    # println("Full matrix: ", real.(vals2)[1:num_eig])
+    
+    plot(xlabel="n",ylabel="Energy")
+    # scatter!(real.(vals2)[1:num_eig],marker=:rect,label="Full matrix")
+    scatter!(real.(vals1)[1:num_eig],marker=:rect,label="Krylov (no sym)")
+
     # println("Using matrix directly: ", vals2[1:10])
 
-    # k_charge = Momentum(;k=k0,nsites=nsites,base=base)
-    # z3_charge = ZNCharge(;N=3,c=0,nsites=nsites,charge_table=[0,1,-1])
-
-    # sector = MomentumSector(;base=3,nsites=nsites,k=k0,charges=[z3_charge]);
-
-    # H = PeriodicHamiltonianNN(Hnn,sector)
-    # # print(H, dtype(H))
-    # v0 = zeros(dtype(H),block_size(H))
-    # @time H(v0)
+    eigvals = []
+    for k in 0:(nsites-1)
+        # k_charge = Momentum(;k=k,nsites=nsites,base=base)
+        
+        sector = MomentumSector(;base=base,nsites=nsites,k=k,charges=Vector{AbelianCharge}());
+        H = PeriodicHamiltonianNN(Hnn,sector)
+        N = block_size(H)
+        #M = get_matrix(H)
+        # println("Hermitian? ", maximum(abs.(M .- M')))
+        println("Sector size: ", block_size(H))
+        println("Evaluation time: ")
+        v0 = zeros(dtype(H),block_size(H))
+        @time H(v0)
+        
+        # @time vals2, vecs2 = eigen(M)
+        vals1, vecs1 = eigsolve(v->H(v),randn(dtype(H),N),20,:SR;ishermitian=true,tol=1e-12,krylovdim=50)
+        push!(eigvals,real.(vals1))
+    end
+    eigvals = sort(vcat(eigvals...))
+    scatter!(eigvals[1:num_eig],marker=:circ,label="Krylov (momentum)")
+    
 end 
