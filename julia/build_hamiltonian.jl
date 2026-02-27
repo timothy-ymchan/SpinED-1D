@@ -11,7 +11,6 @@ function get_momentum_projection(s::Int,nsites::Int,momentum::Int,base::Int)
         sᵢ = circ_shift(sᵢ,1,;base=base,ndit=nsites)
         if sᵢ  < smin
             smin = sᵢ
-            
             R_to_min = R 
         end 
         if sᵢ == s
@@ -114,6 +113,32 @@ end
 struct PeriodicHamiltonianNN{T<: Number}
     Hnn::Matrix{T}
     momentum_sector::MomentumSector
+    _cache_srep::Dict{Int,Int} # Caching mechanism to speed up evaluation
+    _cache_R::Dict{Int,Int}
+    _cache_R_to_min::Dict{Int,Int}
+
+    function PeriodicHamiltonianNN(Hnn::Matrix{T},ms::MomentumSector) where {T <: Number}
+        new{T}(Hnn,ms,Dict{Int,Int}(),Dict{Int,Int}(),Dict{Int,Int}())
+    end
+end
+
+function get_state_rep(H::PeriodicHamiltonianNN,state::Int)
+    srep = get(H._cache_srep,state,-2)  # YM, 2/27/26. Tried false before. Apparently 0 == false is true so it kept recomputing the cache. So I use -2 instead.
+    if srep == -2
+        basis = H.momentum_sector
+        nsites = basis.nsites
+        momentum = basis.momentum.k
+        base = basis.base
+        srep, R, R_to_min = get_momentum_projection(state,nsites,momentum,base)
+        H._cache_srep[state] = srep
+        H._cache_R[state] = R 
+        H._cache_R_to_min[state] = R_to_min
+        # println("Computing cache $(length(H._cache_srep))")
+        return (srep, R, R_to_min)
+    end
+    R = H._cache_R[state]
+    R_to_min = H._cache_R_to_min[state]
+    return (srep, R, R_to_min)
 end
 
 function block_size(H::PeriodicHamiltonianNN)
@@ -143,9 +168,10 @@ function (H::PeriodicHamiltonianNN{T})(v0::AbstractVector{T}) where {T <: Number
         Pin = period_list[i]
         for site in 0:(nsites-1) # H(site, site+1) for site = 0, ..., site-1; site+nsites ∼ site 
             coeffs, ψouts = apply_nn_hamiltonian(;H=H.Hnn,site=site,state_in=ψin,nsites=nsites,base=base)
-            # YM, 2/25/26. Possible optimization strategy: Shift just enoughto hit the representative, and check if representative exist, if exist, then just look up the period. You can probably also combine it with caching
+            
             for (coeff,  ψout) in zip(coeffs, ψouts)
-                ψout_rep, Pout,  ψout_r = get_momentum_projection(ψout,nsites,momentum,base)
+                # ψout_rep, Pout,  ψout_r = get_momentum_projection(ψout,nsites,momentum,base)
+                ψout_rep, Pout,  ψout_r = get_state_rep(H,ψout) # YM, 2/27/2026. Optimization by caching. Much faster than before.
                 # println("R_to_min: $(ψout_r); k=$k")
                 if ψout_rep >= 0
                     idc_out = find_index(ψout_rep,basis)
@@ -159,7 +185,6 @@ function (H::PeriodicHamiltonianNN{T})(v0::AbstractVector{T}) where {T <: Number
             end
         end
     end
-
     return Hv
 end
 
