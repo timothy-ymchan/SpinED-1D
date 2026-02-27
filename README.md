@@ -9,6 +9,7 @@
 - Use block Lanczos in the Julia version to eliminate fragile behavior when the spectrum is degenerate
 - Anti-periodic boundary conditions
 
-## Transverse field ising model demonstration demo 
+## Transverse field ising model demo
 
-![tfi_ising](https://github.com/user-attachments/assets/22195e9b-e821-406b-aca9-63c1bb865f18)
+<img width="600" height="400" alt="tfi_energy_derivatives" src="https://github.com/user-attachments/assets/1821740b-1b0f-424a-a9fa-3953c360eb7a" />
+
