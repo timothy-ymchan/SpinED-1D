@@ -286,12 +286,15 @@ if __name__ == "__main__":
 
 
     # # Compute period table 
-    pt = construct_period_table(nsites=6)
-    pprint_period_table(pt)
+    # pt = construct_period_table(nsites=6)
+    # pprint_period_table(pt)
     # mt = construct_momentum_table(pt)
     # print(mt)
-
-
+    k0 = 2
+    nsites = 6
+    k_checker = lambda state, momentum: check_momentum(state,momentum,nsites) # Build basis on the fly to use less memory 
+    sector_basis = get_sector_basis(nsites,(k0,),(k_checker,))
+    print(sector_basis)
     # Momentum projection
     # base = 3
     # nsites = 6
