@@ -48,6 +48,31 @@ function get_metadata(state::Int,c::Momentum)
     get_period(state,c.nsites;base=c.base)
 end
 
+# U1 charge 
+struct U1Charge <: AbelianCharge
+    nsites::Int
+    c::Int
+    charge_table::Vector{Int} # The basis element i has charge charge_table[i]
+    base::Int
+
+    function U1Charge(;c::Int,nsites::Int,charge_table::Vector{Int})
+        new(nsites, c, charge_table, length(charge_table))
+    end
+end
+Base.show(io::IO, c::U1Charge) = print(io,"U1Charge(c=$(c.c),nsites=$(c.nsites),charge_table=$(c.charge_table))")
+
+function get_charge(state::Int, charge::U1Charge)
+    str_state = num_to_digits(state,charge.base;ndigit=charge.nsites)
+    tot_charge = 0
+    for c in str_state
+         tot_charge += charge.charge_table[c-'0'+1]
+    end
+    tot_charge 
+end
+
+has_charge(state::Int,charge::U1Charge) = get_charge(state,charge) == charge.c
+has_metadata(::U1Charge) = false
+
 # Zn charge 
 struct ZNCharge <: AbelianCharge
     N::Int
