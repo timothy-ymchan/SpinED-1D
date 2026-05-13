@@ -193,49 +193,5 @@ let
 
     # # Saving the eigenvalues to a CSV file
     CSV.write("lai_sutherland_eigvals_su3-nsites-$(nsites).csv", df)
-
-    # Visualize the eigenvalues by momentum and Sz sectors 
-    # p = plot(xlabel="k", ylabel="energy")
-    # num_multiplet = 5 # Number of multiplets to show 
-    # for ddf in groupby(df,[:k, :Sz])
-    #     k0 = first(ddf.k)
-    #     k0 = k0 > nsites ÷ 2 ? k0 - nsites : k0
-    #     Sz = first(ddf.Sz)
-    #     Sz_offset = 0.3 * Sz/ maximum(abs.(Sz_target)) # Offset points by Sz value for better visualization
-
-    #     en = sort(vcat(ddf.vals...))
-    #     tol = 1e-5 # tolerance for multiplets
-    #     bins = []
-    #     freq = []
-    #     for i in 1:length(en)
-    #         if i == 1
-    #             push!(bins, en[i])
-    #             push!(freq, 1)
-    #         elseif abs(en[i] - bins[end]) < tol
-    #             freq[end] += 1
-    #         else
-    #             push!(bins, en[i])
-    #             push!(freq, 1)
-    #         end
-    #     end
-        
-    #     color = Sz == 0 ? :yellowgreen : (Sz > 0 ? :coral : :steelblue2)
-    #     # marker = [:circ, :rect, :diamond, :utriangle, :dtriangle, :][abs.(Sz) + 1]
-    #     marker = [:rect,:circ,  :diamond, :utriangle, :dtriangle,:cross, :xcross]
-
-    #     ntake = min(num_multiplet,length(bins))
-
-    #     markers = [marker[freq[i]] for i in 1:ntake]
-
-    #     scatter!(fill(k0+Sz_offset,ntake),bins[1:ntake],marker=markers,ms=1.5,color=color,label=nothing)
-
-    #     # Annotate degeneracies
-    #     # for (bin, f) in zip(bins[1:num_multiplet], freq[1:num_multiplet])
-    #     #     if f > 1
-    #     #         annotate!(p, k0+Sz_offset, bin, text("x$f", 8 ,:red, :center))
-    #     #     end
-    #     # end
-    # end
-    # display(p)
     
 end 
