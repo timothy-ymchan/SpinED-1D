@@ -23,23 +23,9 @@ let
     # get_nn_hamiltonian_nosym(Hnn,nsites,base)
     @time H = NosymHamiltonianNN(Hnn,nsites,base)
     N = block_size(H)
-    println(N)
-    # M = get_matrix(H)
+    println("Block size without symmetry: ", N)
 
-    #println("Hermitian check: ", maximum(abs.(M-M')))
     num_eig = 10
-    # @time vals1, vecs1 = eigsolve(v->H(v),randn(dtype(H),N),num_eig,:SR;ishermitian=true,tol=1e-12,krylovdim=20)
-    # @time vals2, vecs2 = eigen(M)
-
-    # println("Using Krylov methods: ",real.(vals1))
-    # println("Real and imaginary parts of Kyrlov: ", vals1)
-    # println("Full matrix: ", real.(vals2)[1:num_eig])
-    
-    plot(xlabel="n",ylabel="Energy")
-    # scatter!(real.(vals2)[1:num_eig],marker=:rect,ms=5,label="Full matrix")
-    # scatter!(real.(vals1)[1:num_eig],marker=:circ,ms=5,label="Krylov (no sym)")
-
-    # println("Using matrix directly: ", vals2[1:10])
 
     # Momentum and charge resolved
     eigvals = []
@@ -139,7 +125,7 @@ let
 
     # Momentum and Cartan in SU(3)
     su3_weight_count = Dict(w => 0 for w in target_weights)
-    #su3_weight_count = Dict(w => 0 for w in [-3,-2,-1,0,1,2,3])
+
     eigvals = []
     for k in 0:(nsites-1)
         for λ in target_weights
