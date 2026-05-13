@@ -18,7 +18,7 @@ let
     end
 
     base = 3
-    nsites = 12
+    nsites = 11
 
     # get_nn_hamiltonian_nosym(Hnn,nsites,base)
     @time H = NosymHamiltonianNN(Hnn,nsites,base)
@@ -72,17 +72,50 @@ let
         get_su3_weights((0,0))...,  # 1
         get_su3_weights((1,0))...,  # 3
         get_su3_weights((0,1))...,  # 3'
+        get_su3_weights((1,1))...,  # 8
+
         get_su3_weights((2,0))...,  # 6
         get_su3_weights((0,2))...,  # 6'
-        get_su3_weights((1,1))...,  # 8
+        get_su3_weights((2,1))...,  # 15a
+        get_su3_weights((1,2))...,  # 15a
+        get_su3_weights((2,2))...,  # 27
+
+        
         get_su3_weights((3,0))...,  # 10
         get_su3_weights((0,3))...,  # 10'
-        #get_su3_weights((2,1))...,  # 15a
-        #get_su3_weights((1,2))...,  # 15a
-        #get_su3_weights((4,0))...,  # 15b
-        #get_su3_weights((0,4))...,  # 15b
+        get_su3_weights((3,1))...,  # 24
+        get_su3_weights((1,3))...,  # 24'
+        # get_su3_weights((3,2))...,  # 42
+        # get_su3_weights((2,3))...,  # 42'
+        # get_su3_weights((3,3))...,  # 64
+
+        get_su3_weights((4,0))...,  # 15b
+        get_su3_weights((0,4))...,  # 15b
+        # get_su3_weights((4,1))...,  # 35
+        # get_su3_weights((1,4))...,  # 35'
+        # get_su3_weights((4,2))...,  # 81
+        # get_su3_weights((2,4))...,  # 81'
+        # get_su3_weights((4,3))...,  # 154
+        # get_su3_weights((3,4))...,  # 154'
+        # get_su3_weights((4,4))...,  # 256
+
+        get_su3_weights((5,0))...,  # 21
+        get_su3_weights((0,5))...,  # 21
+        # get_su3_weights((5,1))...,  # 48
+        # get_su3_weights((1,5))...,  # 48'
+        # get_su3_weights((5,2))...,  # 105
+        # get_su3_weights((2,5))...,  # 105'
+        # get_su3_weights((5,3))...,  # 210
+        # get_su3_weights((3,5))...,  # 210'
+        # get_su3_weights((5,4))...,  # 384
+        # get_su3_weights((4,5))...,  # 384'
+        # get_su3_weights((5,5))...,  # 441
     ]
     target_weights = unique(target_weights)
+
+    # Filter out weights that is not possible given the number of sites 
+    # The rule is p-q == L mod 3 for a chain of length L
+    target_weights = filter(w -> (w[1] - w[2] - nsites) % 3 == 0, target_weights)
     Ntot = 0
 
     # Counting the number of states by purely enumerating all basis elements
@@ -104,8 +137,10 @@ let
     #     println("\t$weight: $count")
     # end
 
+    # Momentum and Cartan in SU(3)
     su3_weight_count = Dict(w => 0 for w in target_weights)
     #su3_weight_count = Dict(w => 0 for w in [-3,-2,-1,0,1,2,3])
+    eigvals = []
     for k in 0:(nsites-1)
         for λ in target_weights
 
@@ -116,13 +151,34 @@ let
             N = block_size(H)
             if N > 0
                 println("k = $k, λ = $λ sector [Size = $N] ")
+            else
+                continue 
             end
             Ntot += N
             su3_weight_count[λ] += N
-        end
-        
 
+            num_print = min(num_eig, N)
+            if N < 2000
+                # Diagonalize the matrix in full 
+                M = get_matrix(H)
+                println("\tHermitian? ", maximum(abs.(M .- M')))
+                t = @elapsed vals2, vecs2 = eigen(M)
+                println("\tFull diagonalization: ", real.(vals2)[1:num_print])
+                println("\tTime elapsed: ", t)
+                num_taken = min(num_eig,length(vals2))
+                push!(eigvals,Dict("k"=>k,"U1a"=>λ[1],"U1b"=>λ[2],"vals"=>real.(vals2)[1:num_taken]))
+            else
+                # Use Krylov methods
+                t= @elapsed vals1, vecs1 = eigsolve(v->H(v),randn(dtype(H),N),num_eig,:SR;ishermitian=true,tol=1e-12,krylovdim=50)
+                println("\tKrylov diagonalization: ", real.(vals1)[1:num_print])
+                println("\tTime elapsed: ", t)  
+                num_taken = min(num_eig,length(vals1))
+                push!(eigvals,Dict("k"=>k,"U1a"=>λ[1],"U1b"=>λ[2],"vals"=>real.(vals1)[1:num_taken]))
+            end
+        end
     end
+
+    println("\nSummary:")
     println("Total size across all sectors: $Ntot")
     println("SU(3) weight counts: ")
     su3_weight_count = sort(collect(su3_weight_count), by = x -> x[1])
@@ -131,10 +187,12 @@ let
             println("\t$weight: $count")
         end
     end
+
+    df = DataFrame(eigvals)
     # df = DataFrame(eigvals)
 
     # # Saving the eigenvalues to a CSV file
-    # CSV.write("lai_sutherland_eigvals_$(nsites).csv", df)
+    CSV.write("lai_sutherland_eigvals_su3-nsites-$(nsites).csv", df)
 
     # Visualize the eigenvalues by momentum and Sz sectors 
     # p = plot(xlabel="k", ylabel="energy")
